@@ -45,7 +45,7 @@ public class OrderProducer {
                     "Sent: " + order
             );
 
-            Thread.sleep(1000);
+            Thread.sleep(200);
         }
 
         producer.close();
