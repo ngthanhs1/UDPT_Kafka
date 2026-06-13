@@ -45,8 +45,8 @@ public class OrderConsumer {
                     System.out.println("[" + name + "] SUCCESS: " + value);
 
                 } catch (Exception e) {
-                    System.out.println("[" + name + "] FAILED: " + value + " -> send to DLQ");
-                    producer.send(new ProducerRecord<>("orders-dlq", value));
+                    System.out.println("[" + name + "] FAILED: " + value + " -> send to RETRY");
+                    producer.send(new ProducerRecord<>("orders-retry", value));
                 }
             }
         }
