@@ -1,3 +1,4 @@
+package ptrien;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 
@@ -8,8 +9,7 @@ public class OrderProducer {
     public static void main(String[] args)
             throws Exception {
 
-        Properties props =
-                new Properties();
+        Properties props = new Properties();
 
         props.put(
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
@@ -26,23 +26,32 @@ public class OrderProducer {
                 StringSerializer.class.getName()
         );
 
-        KafkaProducer<String,String> producer =
+        KafkaProducer<String, String> producer =
                 new KafkaProducer<>(props);
+                
+        for (int i = 1; i <= 100; i++) {
 
-        for(int i=1;i<=100;i++){
+            Order order =
+                    new Order(
+                            "OD" + i,
+                            "Cafe Sua",
+                            (int)(Math.random() * 5) + 1
+                    );
 
-            String order =
-                    "Order-" + i;
+            String data =
+                    order.toString();
 
             producer.send(
                     new ProducerRecord<>(
                             "orders",
-                            order
+                            String.valueOf(i),
+                            data
                     )
             );
 
             System.out.println(
-                    "Sent: " + order
+                    "[PRODUCER] Sent: "
+                            + data
             );
 
             Thread.sleep(1000);

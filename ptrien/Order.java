@@ -1,3 +1,4 @@
+package ptrien;
 public class Order {
 
     private String orderId;

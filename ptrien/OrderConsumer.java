@@ -1,12 +1,15 @@
+package ptrien;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Collections;
+import java.util.Properties;
 
 public class OrderConsumer {
 
-    public static void main(String[] args) {
+    public static void main(String[] args)
+            throws Exception {
 
         String name = args[0];
 
@@ -33,14 +36,23 @@ public class OrderConsumer {
                 StringDeserializer.class.getName()
         );
 
+        props.put(
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+                "earliest"
+        );
+
         KafkaConsumer<String,String> consumer =
                 new KafkaConsumer<>(props);
 
         consumer.subscribe(
-            Collections.singletonList(
-                "orders"
-        ),
-        new ConsumerMonitor()
+                Collections.singletonList(
+                        "orders"
+                ),
+                new ConsumerMonitor()
+        );
+
+        System.out.println(
+                "[" + name + "] Started..."
         );
 
         while(true){
@@ -48,9 +60,7 @@ public class OrderConsumer {
             ConsumerRecords<String,String>
                     records =
                     consumer.poll(
-                            Duration.ofMillis(
-                                    100
-                            )
+                            Duration.ofMillis(100)
                     );
 
             for(
@@ -60,8 +70,17 @@ public class OrderConsumer {
             ){
 
                 System.out.println(
-                        "[" + name + "] "
-                                + record.value()
+                        "\n[" + name + "] Dang xu ly:"
+                );
+
+                System.out.println(
+                        record.value()
+                );
+
+                Thread.sleep(2000);
+
+                System.out.println(
+                        "[" + name + "] Hoan thanh!"
                 );
             }
         }

@@ -540,6 +540,8 @@ public class KafkaConsumer<K, V> implements Consumer<K, V> {
 
     private static final ConsumerDelegateCreator CREATOR = new ConsumerDelegateCreator();
 
+    
+
     private final ConsumerDelegate<K, V> delegate;
 
     /**
