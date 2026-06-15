@@ -85,3 +85,17 @@ setInterval(
     loadData,
     1000
 );
+
+async function sendSuccess(){
+
+    await fetch(
+        "http://localhost:8081/send-success"
+    );
+}
+
+async function sendFailed(){
+
+    await fetch(
+        "http://localhost:8081/send-failed"
+    );
+}
