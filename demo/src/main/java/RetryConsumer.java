@@ -44,11 +44,13 @@ public class RetryConsumer {
                     String retryMessage = order + "|retry=" + nextRetry;
 
                     System.out.println("[RETRY] " + order + " attempt=" + nextRetry + " -> FAILED, retry again");
+                    EventLogger.log("RETRY: " + order + " attempt=" + nextRetry);
                     producer.send(new ProducerRecord<>("orders-retry", retryMessage));
                 } else {
                     String dlqMessage = order + "|reason=max retry exceeded|retry=" + retryCount;
 
                     System.out.println("[RETRY] " + order + " exceeded max retry -> send to DLQ");
+                    EventLogger.log("DLQ: " + order + " exceeded max retry");
                     producer.send(new ProducerRecord<>("orders-dlq", dlqMessage));
                 }
             }

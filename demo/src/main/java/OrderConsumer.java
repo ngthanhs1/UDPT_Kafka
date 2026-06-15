@@ -43,9 +43,11 @@ public class OrderConsumer {
                     }
 
                     System.out.println("[" + name + "] SUCCESS: " + value);
+                    EventLogger.log("SUCCESS: " + value);
 
                 } catch (Exception e) {
                     System.out.println("[" + name + "] FAILED: " + value + " -> send to RETRY");
+                    EventLogger.log("FAILED: " + value);
                     producer.send(new ProducerRecord<>("orders-retry", value));
                 }
             }

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Kafka Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>Kafka Event Streaming Demo</h1>
+
+<div class="card">
+    <h2>Consumer Status</h2>
+    <p>C1 : RUNNING</p>
+    <p>C2 : RUNNING</p>
+    <p>C3 : RUNNING</p>
+</div>
+
+<div class="card">
+    <h2>Partition Assignment</h2>
+    <p>orders-0 -> C1</p>
+    <p>orders-1 -> C2</p>
+    <p>orders-2 -> C3</p>
+</div>
+
+<div class="card">
+    <h2>Statistics</h2>
+
+    <p>SUCCESS :
+        <span id="success">
+            0
+        </span>
+    </p>
+
+    <p>RETRY :
+        <span id="retry">
+            0
+        </span>
+    </p>
+
+    <p>DLQ :
+        <span id="dlq">
+            0
+        </span>
+    </p>
+</div>
+
+<div class="card">
+    <h2>Recent Events</h2>
+
+    <ul id="events">
+    </ul>
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
