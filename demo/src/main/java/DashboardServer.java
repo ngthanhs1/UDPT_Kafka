@@ -130,7 +130,6 @@ public class DashboardServer {
 
         OutputStream os =
                 exchange.getResponseBody();
-
         os.write(
                 body.getBytes()
         );
