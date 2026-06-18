@@ -1,61 +1,511 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>Kafka Dashboard</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafka Order Processing Dashboard</title>
+    <!-- Nhúng font chữ Outfit và JetBrains Mono từ Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome cho icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
-
-    <h1>Kafka Order Processing Dashboard</h1>
-
-    <div class="actions">
-        <button onclick="sendSuccess()">
-            Send Success Order
-        </button>
-
-        <button onclick="sendFailed()">
-            Send Failed Order
-        </button>
-    </div>
-
-    <div class="cards">
-
-        <div class="card">
-            <h3>System Status</h3>
-
-            <p>Kafka Broker : ONLINE</p>
-            <p>Consumer C1 : ACTIVE</p>
-            <p>Consumer C2 : ACTIVE</p>
-            <p>Retry Consumer : ACTIVE</p>
-            <p>DLQ Consumer : ACTIVE</p>
-
+<div class="app-container">
+    <!-- Sidebar điều hướng -->
+    <aside class="sidebar">
+        <div class="brand">
+            <i class="fa-brands fa-square-git logo-icon"></i>
+            <h2>Kafka UDPT</h2>
         </div>
+        
+        <nav class="nav-menu">
+            <button class="nav-item active" onclick="switchTab('dashboard')">
+                <i class="fa-solid fa-chart-line"></i> Dashboard chính
+            </button>
+            <button class="nav-item" onclick="switchTab('producer')">
+                <i class="fa-solid fa-paper-plane"></i> Gửi đơn hàng (Producer)
+            </button>
+            <button class="nav-item" onclick="switchTab('rebalance')">
+                <i class="fa-solid fa-diagram-project"></i> Sơ đồ Rebalance
+            </button>
+            <button class="nav-item" onclick="switchTab('education')">
+                <i class="fa-solid fa-graduation-cap"></i> Kiến thức Kafka
+            </button>
+        </nav>
 
-        <div class="card">
-            <h3>Statistics</h3>
-
-            <p id="successCount">Success: 0</p>
-            <p id="retryCount">Retry: 0</p>
-            <p id="dlqCount">DLQ: 0</p>
-
+        <div class="sidebar-footer">
+            <div class="status-pulse-group">
+                <span class="pulse-indicator online" id="brokerStatusPulse"></span>
+                <span class="status-text" id="brokerStatusText">API Server: ONLINE</span>
+            </div>
+            <p class="project-info">Hệ phân tán Kafka Demo</p>
         </div>
+    </aside>
 
-    </div>
+    <!-- Main Content Area -->
+    <main class="main-content">
+        
+        <!-- Tab 1: Dashboard chính -->
+        <section id="tab-dashboard" class="tab-section active">
+            <header class="content-header">
+                <div>
+                    <h1>Kafka Order Processing Dashboard</h1>
+                    <p class="subtitle">Giám sát và kiểm thử hệ thống xử lý đơn hàng chịu lỗi thời gian thực</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-success" onclick="quickSend('success')">
+                        <i class="fa-solid fa-circle-check"></i> Đơn thành công
+                    </button>
+                    <button class="btn btn-danger" onclick="quickSend('failed')">
+                        <i class="fa-solid fa-circle-xmark"></i> Đơn lỗi (Order-5)
+                    </button>
+                </div>
+            </header>
 
-    <div class="log-box">
+            <!-- Cards Container -->
+            <div class="stats-grid">
+                <div class="stat-card success-card">
+                    <div class="stat-icon"><i class="fa-solid fa-square-check"></i></div>
+                    <div class="stat-info">
+                        <h3>Đơn thành công</h3>
+                        <div class="value-container">
+                            <span class="stat-value" id="successCount">0</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar" id="successProgress" style="width: 0%"></div>
+                        </div>
+                        <p class="stat-desc">Đơn hàng xử lý hoàn tất</p>
+                    </div>
+                </div>
 
-        <h2>Activity Log</h2>
+                <div class="stat-card retry-card">
+                    <div class="stat-icon"><i class="fa-solid fa-arrows-rotate"></i></div>
+                    <div class="stat-info">
+                        <h3>Đơn thử lại (Retry)</h3>
+                        <div class="value-container">
+                            <span class="stat-value" id="retryCount">0</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar" id="retryProgress" style="width: 0%"></div>
+                        </div>
+                        <p class="stat-desc">Xử lý lại khi gặp lỗi tạm thời</p>
+                    </div>
+                </div>
 
-        <pre id="logs"></pre>
+                <div class="stat-card dlq-card">
+                    <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="stat-info">
+                        <h3>Dead Letter Queue</h3>
+                        <div class="value-container">
+                            <span class="stat-value" id="dlqCount">0</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar" id="dlqProgress" style="width: 0%"></div>
+                        </div>
+                        <p class="stat-desc">Đơn hàng lỗi vĩnh viễn (lưu trữ)</p>
+                    </div>
+                </div>
+            </div>
 
-    </div>
+            <!-- Monitoring Grid -->
+            <div class="dashboard-grid">
+                <!-- System Status Panel -->
+                <div class="panel system-status-panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-server"></i> Trạng thái các thành phần</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="status-list">
+                            <div class="status-item">
+                                <span class="status-label">Kafka Broker</span>
+                                <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> ONLINE</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Consumer Group (order-group)</span>
+                                <span class="badge badge-primary" id="groupStatus"><i class="fa-solid fa-users"></i> ACTIVE</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Retry Worker (retry-group)</span>
+                                <span class="badge badge-warning"><i class="fa-solid fa-gears"></i> ACTIVE</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">DLQ Monitor (dlq-group)</span>
+                                <span class="badge badge-danger"><i class="fa-solid fa-shield-halved"></i> MONITORING</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- Pipeline Flow Illustration -->
+                <div class="panel flow-panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-route"></i> Quy trình xử lý lỗi Kafka</h2>
+                    </div>
+                    <div class="panel-body flow-visualizer">
+                        <div class="flow-steps">
+                            <div class="flow-step">
+                                <div class="step-circle success"><i class="fa-solid fa-paper-plane"></i></div>
+                                <span>Producer</span>
+                            </div>
+                            <div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+                            <div class="flow-step">
+                                <div class="step-circle primary"><i class="fa-solid fa-inbox"></i></div>
+                                <span>Topic orders</span>
+                            </div>
+                            <div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+                            <div class="flow-step">
+                                <div class="step-circle" id="consumerNode"><i class="fa-solid fa-gears"></i></div>
+                                <span>Order Consumer</span>
+                            </div>
+                        </div>
+                        <div class="flow-branches">
+                            <div class="branch branch-success">
+                                <div class="branch-line-v"></div>
+                                <div class="branch-line-h"></div>
+                                <div class="flow-step text-success">
+                                    <div class="step-circle success-solid"><i class="fa-solid fa-check"></i></div>
+                                    <span>Success (Hoàn tất)</span>
+                                </div>
+                            </div>
+                            <div class="branch branch-retry">
+                                <div class="branch-line-v"></div>
+                                <div class="branch-line-h"></div>
+                                <div class="flow-step text-warning">
+                                    <div class="step-circle warning-solid"><i class="fa-solid fa-arrows-rotate"></i></div>
+                                    <span>orders-retry (Max 3)</span>
+                                </div>
+                            </div>
+                            <div class="branch branch-dlq">
+                                <div class="branch-line-v-long"></div>
+                                <div class="branch-line-h"></div>
+                                <div class="flow-step text-danger">
+                                    <div class="step-circle danger-solid"><i class="fa-solid fa-skull-crossbones"></i></div>
+                                    <span>orders-dlq (DLQ)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal Logs Panel -->
+            <div class="panel log-panel">
+                <div class="panel-header log-header">
+                    <h2><i class="fa-solid fa-terminal"></i> Nhật ký hoạt động hệ thống (Activity Log)</h2>
+                    <div class="log-controls">
+                        <div class="filter-group">
+                            <button class="filter-btn active" onclick="setLogFilter('all')">Tất cả</button>
+                            <button class="filter-btn" onclick="setLogFilter('success')">Thành công</button>
+                            <button class="filter-btn" onclick="setLogFilter('retry')">Thử lại</button>
+                            <button class="filter-btn" onclick="setLogFilter('dlq')">DLQ</button>
+                            <button class="filter-btn" onclick="setLogFilter('rebalance')">Rebalance</button>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="clearLocalLogs()">
+                            <i class="fa-solid fa-trash-can"></i> Xóa hiển thị
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-body log-body">
+                    <div class="terminal-view">
+                        <div class="terminal-header">
+                            <span class="terminal-dot red"></span>
+                            <span class="terminal-dot yellow"></span>
+                            <span class="terminal-dot green"></span>
+                            <span class="terminal-title">events.log - Live Monitoring</span>
+                        </div>
+                        <pre id="logs" class="terminal-content">Đang kết nối tới API server để tải nhật ký...</pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 2: Gửi đơn hàng (Producer) -->
+        <section id="tab-producer" class="tab-section">
+            <header class="content-header">
+                <div>
+                    <h1>Kafka Advanced Message Producer</h1>
+                    <p class="subtitle">Tạo và gửi các bản tin đơn hàng tùy biến để kiểm thử hành vi xử lý lỗi của Consumer</p>
+                </div>
+            </header>
+
+            <div class="producer-grid">
+                <!-- Custom Producer Form -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-pen-to-square"></i> Form cấu hình đơn hàng</h2>
+                    </div>
+                    <div class="panel-body">
+                        <form id="customOrderForm" onsubmit="sendCustomOrder(event)">
+                            <div class="form-group">
+                                <label for="orderId">Mã đơn hàng (Order ID)</label>
+                                <div class="input-with-icon">
+                                    <i class="fa-solid fa-hashtag"></i>
+                                    <input type="text" id="orderId" required placeholder="Ví dụ: Order-99">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="productName">Tên sản phẩm (Product Name)</label>
+                                <div class="input-with-icon">
+                                    <i class="fa-solid fa-box-open"></i>
+                                    <input type="text" id="productName" required placeholder="Ví dụ: Laptop Gaming ASUS">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="quantity">Số lượng (Quantity)</label>
+                                <div class="input-with-icon">
+                                    <i class="fa-solid fa-calculator"></i>
+                                    <input type="number" id="quantity" required min="1" value="1">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Chế độ mô phỏng lỗi (Failure Mode)</label>
+                                <div class="radio-cards">
+                                    <label class="radio-card active">
+                                        <input type="radio" name="failureMode" value="success" checked onclick="updateRadioCard(this)">
+                                        <div class="radio-card-content">
+                                            <i class="fa-solid fa-circle-check text-success"></i>
+                                            <strong>Thành công</strong>
+                                            <span>Đơn hàng được xử lý ngay lập tức</span>
+                                        </div>
+                                    </label>
+
+                                    <label class="radio-card">
+                                        <input type="radio" name="failureMode" value="transient" onclick="updateRadioCard(this)">
+                                        <div class="radio-card-content">
+                                            <i class="fa-solid fa-arrows-rotate text-warning"></i>
+                                            <strong>Lỗi tạm thời (Retry)</strong>
+                                            <span>Lỗi lần đầu, xử lý thành công ở lần Retry thứ 1</span>
+                                        </div>
+                                    </label>
+
+                                    <label class="radio-card">
+                                        <input type="radio" name="failureMode" value="persistent" onclick="updateRadioCard(this)">
+                                        <div class="radio-card-content">
+                                            <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+                                            <strong>Lỗi vĩnh viễn (DLQ)</strong>
+                                            <span>Thử lại thất bại 3 lần, chuyển trực tiếp vào DLQ</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fa-solid fa-paper-plane"></i> GỬI VÀO KAFKA TOPIC "ORDERS"
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Explaination Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-circle-info"></i> Giải thích cơ chế kiểm thử</h2>
+                    </div>
+                    <div class="panel-body info-content">
+                        <h3>Cấu trúc chuỗi bản tin gửi vào Kafka:</h3>
+                        <p>Khi bạn nhấn nút gửi, DashboardServer sẽ đóng gói đơn hàng thành chuỗi dạng:</p>
+                        <div class="code-box">
+                            <span id="demoMessagePreview">Order-99,Laptop Gaming ASUS,1</span>
+                        </div>
+
+                        <h3>Hành vi của Consumer:</h3>
+                        <ul>
+                            <li>
+                                <strong class="text-success"><i class="fa-solid fa-check-double"></i> Chế độ thành công:</strong>
+                                Consumer nhận bản tin, xử lý thành công và ghi log <code>SUCCESS: ...</code>.
+                            </li>
+                            <li>
+                                <strong class="text-warning"><i class="fa-solid fa-rotate-right"></i> Chế độ lỗi tạm thời:</strong>
+                                Giao diện đính kèm cờ <code>|fail-transient</code> vào bản tin.
+                                <code>OrderConsumer</code> sẽ ném ra lỗi, đẩy sang topic <code>orders-retry</code>.
+                                <code>RetryConsumer</code> thấy cờ này sẽ ghi log lỗi tạm thời, tiến hành thử lại 1 lần và thành công.
+                            </li>
+                            <li>
+                                <strong class="text-danger"><i class="fa-solid fa-skull"></i> Chế độ lỗi vĩnh viễn:</strong>
+                                Giao diện đính kèm cờ <code>|fail-persistent</code>.
+                                <code>OrderConsumer</code> ném lỗi, đẩy sang topic <code>orders-retry</code>.
+                                <code>RetryConsumer</code> sẽ cố gắng thử lại liên tục. Mỗi lần thử lại thất bại nó lại tăng biến đếm <code>retry=1</code>, <code>retry=2</code>, <code>retry=3</code>.
+                                Sau khi vượt quá 3 lần thử lại, bản tin được chuyển sang topic <code>orders-dlq</code> và <code>DlqConsumer</code> tiếp nhận ghi log lỗi.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 3: Sơ đồ Rebalance (Consumer Group) -->
+        <section id="tab-rebalance" class="tab-section">
+            <header class="content-header">
+                <div>
+                    <h1>Consumer Group Rebalance Visualizer</h1>
+                    <p class="subtitle">Xem cách Kafka tự động phân phối các Partitions cho các Consumer khi có sự thay đổi thành viên nhóm</p>
+                </div>
+            </header>
+
+            <div class="visualizer-container">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-network-wired"></i> Sơ đồ gán phân vùng thực tế (Live Partition Assignment Map)</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="visualizer-intro">
+                            <p>Sơ đồ dưới đây được sinh tự động bằng cách phân tích các log sự kiện <code>REBALANCE ASSIGN</code> và <code>REBALANCE REMOVE</code> ghi nhận từ các Consumer đang hoạt động.</p>
+                        </div>
+                        
+                        <!-- Sơ đồ Phân vùng -->
+                        <div class="topology-map">
+                            <!-- Cột Topic & Partitions -->
+                            <div class="topology-column">
+                                <h3 class="column-title">Topic: orders</h3>
+                                <div class="partition-list">
+                                    <div class="partition-node" id="p-orders-0">
+                                        <span class="p-badge">P-0</span>
+                                        <span class="p-name">Partition 0</span>
+                                    </div>
+                                    <div class="partition-node" id="p-orders-1">
+                                        <span class="p-badge">P-1</span>
+                                        <span class="p-name">Partition 1</span>
+                                    </div>
+                                    <div class="partition-node" id="p-orders-2">
+                                        <span class="p-badge">P-2</span>
+                                        <span class="p-name">Partition 2</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cột liên kết mạng (SVG Lines) -->
+                            <div class="topology-connector">
+                                <svg id="topology-svg" width="150" height="250">
+                                    <!-- Các đường nối sẽ được vẽ động bằng JS -->
+                                </svg>
+                            </div>
+
+                            <!-- Cột Active Consumers -->
+                            <div class="topology-column">
+                                <h3 class="column-title">Consumer Group: order-group</h3>
+                                <div class="consumer-list" id="activeConsumerList">
+                                    <div class="no-consumers">
+                                        <i class="fa-solid fa-circle-exclamation"></i>
+                                        <p>Chưa phát hiện sự kiện Rebalance nào trong log.</p>
+                                        <span>Hãy khởi chạy ít nhất một Consumer và để ý log REBALANCE ASSIGN.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="instruction-box">
+                            <h4><i class="fa-solid fa-flask"></i> Cách thực hành kiểm nghiệm cơ chế Load Balancing & Fault Tolerance:</h4>
+                            <ol>
+                                <li>Mở terminal và khởi chạy Consumer thứ nhất: <code>bin\windows\kafka-run-class.bat org.apache.kafka.clients.consumer.KafkaConsumer...</code> (hoặc chạy lớp <code>OrderConsumer C1</code> từ IDE). Sơ đồ sẽ hiển thị <strong>C1</strong> nhận tất cả các phân vùng.</li>
+                                <li>Khởi chạy thêm Consumer thứ hai trong terminal mới: chạy lớp <code>OrderConsumer C2</code>.</li>
+                                <li>Kafka sẽ tự động kích hoạt quá trình <strong>Rebalance</strong> để chia sẻ tải. Một số phân vùng của <strong>C1</strong> sẽ bị thu hồi và gán lại cho <strong>C2</strong>. Sơ đồ sẽ cập nhật sự gán này!</li>
+                                <li>Tắt một trong hai consumer. Kafka sẽ lập tức phát hiện sự cố (Fault Tolerance) và chuyển các phân vùng của consumer đã chết sang cho consumer còn sống.</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 4: Kiến thức Kafka -->
+        <section id="tab-education" class="tab-section">
+            <header class="content-header">
+                <div>
+                    <h1>Kiến thức & Tính năng mới của Apache Kafka</h1>
+                    <p class="subtitle">Tìm hiểu kiến trúc hiện đại và câu hỏi thường gặp của giảng viên khi bảo vệ bài tập lớn</p>
+                </div>
+            </header>
+
+            <div class="education-grid">
+                <!-- ZooKeeper vs KRaft -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-server"></i> 1. Kafka KRaft Mode (Không ZooKeeper)</h2>
+                    </div>
+                    <div class="panel-body info-content">
+                        <div class="badge-row">
+                            <span class="badge badge-success">Mới trong Kafka 3.x+</span>
+                            <span class="badge badge-danger">ZooKeeper bị loại bỏ hoàn toàn trong Kafka 4.0</span>
+                        </div>
+                        <p>Trước đây, Kafka cần hệ thống **ZooKeeper** bên ngoài để quản lý siêu dữ liệu (metadata), lưu cấu hình và bầu chọn Controller (Broker đầu não). Từ các phiên bản mới, Kafka chuyển hoàn toàn sang **KRaft (Kafka Raft Metadata Mode)**.</p>
+                        
+                        <h4>Tại sao KRaft vượt trội hơn?</h4>
+                        <ul>
+                            <li><strong>Kiến trúc phẳng:</strong> Không cần chạy và quản lý thêm một cụm ZooKeeper độc lập, đơn giản hóa vận hành.</li>
+                            <li><strong>Khả năng mở rộng vượt giới hạn:</strong> Cho phép mở rộng lên hàng triệu Partitions trên một cụm broker (ZooKeeper bị nghẽn ở khoảng vài chục nghìn partitions).</li>
+                            <li><strong>Phục hồi sự cố tức thì:</strong> Khi Controller bị sập, KRaft bầu chọn Controller mới chỉ mất vài mili-giây thay vì vài chục giây như ZooKeeper, tránh làm gián đoạn hệ thống.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Cooperative Rebalance -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-arrows-spin"></i> 2. Hỗ trợ Cooperative Sticky Assignor</h2>
+                    </div>
+                    <div class="panel-body info-content">
+                        <p>Trong các phiên bản Kafka cũ, cơ chế Rebalance hoạt động theo giao thức **Eager Rebalance** (thu hồi toàn bộ phân vùng của tất cả các consumer, bắt nhóm dừng hoạt động, phân chia lại từ đầu). Điều này gây ra hiện tượng gián đoạn xử lý cực lớn (Stop-The-World).</p>
+                        
+                        <h4>Incremental Cooperative Rebalance giải quyết thế nào?</h4>
+                        <ul>
+                            <li>Thay vì thu hồi tất cả, Kafka chỉ thu hồi các phân vùng cần chuyển đổi giữa các consumer.</li>
+                            <li>Các consumer không bị ảnh hưởng bởi quá trình chuyển giao vẫn tiếp tục tiêu thụ tin nhắn bình thường mà không cần dừng lại.</li>
+                            <li>Kế thừa thuật toán <strong>Sticky</strong>: Cố gắng giữ nguyên các phân vùng đã gán trước đó cho consumer để tối ưu hóa bộ nhớ đệm (cache).</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- DLQ Pattern -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-shield-halved"></i> 3. Dead Letter Queue (DLQ) & Retry Topics</h2>
+                    </div>
+                    <div class="panel-body info-content">
+                        <p>Đây là một **Design Pattern** bắt buộc phải có trong các hệ thống xử lý tin nhắn chịu lỗi cao (Fault-Tolerant Enterprise Systems).</p>
+                        
+                        <h4>Ý nghĩa thực tiễn:</h4>
+                        <ul>
+                            <li><strong>Tránh tắc nghẽn (Blocking):</strong> Nếu một tin nhắn lỗi không thể xử lý, việc giữ nó ở đầu hàng đợi sẽ làm nghẽn các tin nhắn phía sau. Chuyển nó sang DLQ giúp hệ thống chính lưu thông bình thường.</li>
+                            <li><strong>Không làm mất dữ liệu:</strong> Thay vì bỏ qua tin nhắn lỗi, ta chuyển chúng vào DLQ. Hệ thống vẫn an toàn, còn dữ liệu lỗi được giữ lại để điều tra.</li>
+                            <li><strong>Tự động hồi phục:</strong> Kết hợp hàng đợi Retry với thời gian trễ giúp hệ thống vượt qua các lỗi tạm thời (ví dụ: bận DB, rớt mạng tạm thời).</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- QA Panel -->
+                <div class="panel qa-panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-circle-question"></i> Câu hỏi giảng viên hay hỏi khi bảo vệ</h2>
+                    </div>
+                    <div class="panel-body info-content">
+                        <div class="qa-item">
+                            <span class="q">Q1: Consumer Group là gì? Tại sao các Consumer lại tự chia sẻ Partitions?</span>
+                            <span class="a">A1: Consumer Group là tập hợp các consumer cùng chia sẻ việc đọc dữ liệu từ một hoặc nhiều topic. Kafka sẽ tự động phân phối các partitions của topic cho các consumer trong group sao cho mỗi partition chỉ được đọc bởi duy nhất 1 consumer tại một thời điểm. Điều này giúp xử lý song song mà không sợ trùng lặp dữ liệu.</span>
+                        </div>
+                        <div class="qa-item">
+                            <span class="q">Q2: Điều gì xảy ra nếu số lượng Consumer lớn hơn số lượng Partitions của Topic?</span>
+                            <span class="a">A2: Khi đó, một số Consumer dư thừa sẽ ở trạng thái rảnh rỗi (idle), vì nguyên tắc độc quyền gán (1 partition gán tối đa cho 1 consumer trong group). Để tận dụng hết consumer, ta phải tăng số lượng partition của topic đó.</span>
+                        </div>
+                        <div class="qa-item">
+                            <span class="q">Q3: offset trong Kafka dùng để làm gì?</span>
+                            <span class="a">A3: Offset là vị trí tăng dần duy nhất của bản tin trong một partition. Nó giúp ghi nhận vị trí mà consumer đã xử lý thành công, đảm bảo consumer có thể đọc tiếp từ đúng vị trí đó sau khi khởi động lại (đảm bảo tính tin cậy).</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
 </div>
 
+<!-- Scripts -->
 <script src="app.js"></script>
-
 </body>
 </html>

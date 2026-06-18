@@ -34,6 +34,14 @@ import java.util.Collection;
 public class ConsumerMonitor
         implements ConsumerRebalanceListener {
 
+    private String consumerName = "Unknown-Consumer";
+
+    public ConsumerMonitor() {}
+
+    public ConsumerMonitor(String consumerName) {
+        this.consumerName = consumerName;
+    }
+
     /*
      * Partition bị thu hồi
      *
@@ -48,7 +56,7 @@ public class ConsumerMonitor
 
         String msg =
                 "\n========================================" +
-                "\n REBALANCE - THU HỒI PARTITION" +
+                "\n REBALANCE - THU HỒI PARTITION (" + consumerName + ")" +
                 "\n Partition bị thu hồi: " +
                 partitions +
                 "\n Kafka đang phân phối lại tải..." +
@@ -57,8 +65,7 @@ public class ConsumerMonitor
         System.out.println(msg);
 
         EventLogger.log(
-                "REBALANCE REMOVE: "
-                        + partitions
+                "REBALANCE REMOVE: " + consumerName + " -> " + partitions
         );
     }
 
@@ -76,7 +83,7 @@ public class ConsumerMonitor
 
         String msg =
                 "\n****************************************" +
-                "\n REBALANCE - PHÂN CÔNG PARTITION" +
+                "\n REBALANCE - PHÂN CÔNG PARTITION (" + consumerName + ")" +
                 "\n Partition được giao: " +
                 partitions +
                 "\n Consumer bắt đầu xử lý dữ liệu" +
@@ -85,8 +92,7 @@ public class ConsumerMonitor
         System.out.println(msg);
 
         EventLogger.log(
-                "REBALANCE ASSIGN: "
-                        + partitions
+                "REBALANCE ASSIGN: " + consumerName + " -> " + partitions
         );
     }
 }

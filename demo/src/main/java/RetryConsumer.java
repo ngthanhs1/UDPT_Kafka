@@ -95,7 +95,7 @@ public class RetryConsumer {
                  * CASE 1:
                  * Order-5 sẽ thành công sau lần Retry đầu tiên
                  */
-                if (order.equals("Order-5")) {
+                if (order.equals("Order-5") || order.contains("fail-transient")) {
 
                     if (retryCount < 1) {
 

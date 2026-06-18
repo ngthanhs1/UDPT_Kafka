@@ -101,7 +101,7 @@ public class OrderConsumer {
          */
         consumer.subscribe(
                 Collections.singletonList("orders"),
-                new ConsumerMonitor()
+                new ConsumerMonitor(name)
         );
 
         System.out.println(
@@ -130,6 +130,8 @@ public class OrderConsumer {
                             value.equals("Order-5")
                                     || value.equals("Order-10")
                                     || value.equals("Order-15")
+                                    || value.contains("fail-transient")
+                                    || value.contains("fail-persistent")
                     ) {
 
                         throw new RuntimeException(

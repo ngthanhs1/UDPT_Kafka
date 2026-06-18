@@ -38,6 +38,11 @@ public class DashboardServer {
         );
 
         server.createContext(
+                "/send-custom",
+                DashboardServer::sendCustom
+        );
+
+        server.createContext(
                 "/logs",
                 DashboardServer::getLogs
         );
@@ -112,6 +117,68 @@ public class DashboardServer {
         }catch(Exception e){
 
             e.printStackTrace();
+        }
+    }
+
+    private static void sendCustom(
+            HttpExchange exchange
+    ){
+
+        try{
+
+            String query = exchange.getRequestURI().getQuery();
+            String orderId = "Order-Custom";
+            String product = "Product";
+            String qty = "1";
+            String mode = "success";
+
+            if (query != null) {
+
+                String[] params = query.split("&");
+
+                for (String param : params) {
+
+                    String[] pair = param.split("=");
+
+                    if (pair.length > 1) {
+
+                        String key = pair[0];
+                        String val = java.net.URLDecoder.decode(pair[1], "UTF-8");
+
+                        if (key.equals("id")) orderId = val;
+                        else if (key.equals("product")) product = val;
+                        else if (key.equals("qty")) qty = val;
+                        else if (key.equals("mode")) mode = val;
+                    }
+                }
+            }
+
+            // Xây dựng message: orderId,product,quantity
+            String value = orderId + "," + product + "," + qty;
+
+            if (mode.equals("transient")) {
+                value += "|fail-transient";
+            } else if (mode.equals("persistent")) {
+                value += "|fail-persistent";
+            }
+
+            sendOrder(value);
+
+            response(
+                    exchange,
+                    "CUSTOM ORDER SENT: " + value
+            );
+
+        }catch(Exception e){
+
+            e.printStackTrace();
+
+            try {
+                response(
+                        exchange,
+                        "ERROR: " + e.getMessage()
+                );
+            } catch(Exception ex) {}
         }
     }
 
