@@ -1,68 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Kafka Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Kafka Dashboard</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>Kafka Event Streaming Demo</h1>
-<div class="card">
+<div class="container">
 
-    <h2>Test Actions</h2>
+    <h1>Kafka Order Processing Dashboard</h1>
 
-    <button onclick="sendSuccess()">
-        Send Success Order
-    </button>
+    <div class="actions">
+        <button onclick="sendSuccess()">
+            Send Success Order
+        </button>
 
-    <button onclick="sendFailed()">
-        Send Failed Order
-    </button>
+        <button onclick="sendFailed()">
+            Send Failed Order
+        </button>
+    </div>
 
-</div>
-33333333333333333333333
-<div class="card">
-    <h2>Consumer Status</h2>
-    <p>C1 : RUNNING</p>
-    <p>C2 : RUNNING</p>
-    <p>C3 : RUNNING</p>
-</div>
+    <div class="cards">
 
-<div class="card">
-    <h2>Partition Assignment</h2>
-    <p>orders-0 -> C1</p>
-    <p>orders-1 -> C2</p>
-    <p>orders-2 -> C3</p>
-</div>
+        <div class="card">
+            <h3>System Status</h3>
 
-<div class="card">
-    <h2>Statistics</h2>
+            <p>Kafka Broker : ONLINE</p>
+            <p>Consumer C1 : ACTIVE</p>
+            <p>Consumer C2 : ACTIVE</p>
+            <p>Retry Consumer : ACTIVE</p>
+            <p>DLQ Consumer : ACTIVE</p>
 
-    <p>SUCCESS :
-        <span id="success">
-            0
-        </span>
-    </p>
+        </div>
 
-    <p>RETRY :
-        <span id="retry">
-            0
-        </span>
-    </p>
+        <div class="card">
+            <h3>Statistics</h3>
 
-    <p>DLQ :
-        <span id="dlq">
-            0
-        </span>
-    </p>
-</div>
+            <p id="successCount">Success: 0</p>
+            <p id="retryCount">Retry: 0</p>
+            <p id="dlqCount">DLQ: 0</p>
 
-<div class="card">
-    <h2>Recent Events</h2>
+        </div>
 
-    <ul id="events">
-    </ul>
+    </div>
+
+    <div class="log-box">
+
+        <h2>Activity Log</h2>
+
+        <pre id="logs"></pre>
+
+    </div>
+
 </div>
 
 <script src="app.js"></script>

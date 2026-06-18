@@ -1,96 +1,9 @@
-async function loadData(){
-
-    let response =
-        await fetch(
-            "data/events.log?t="
-            + Date.now()
-        );
-
-    let text =
-        await response.text();
-
-    let lines =
-        text.trim()
-            .split("\n");
-
-    let success = 0;
-    let retry = 0;
-    let dlq = 0;
-
-    let events =
-        document.getElementById(
-            "events"
-        );
-
-    events.innerHTML = "";
-
-    lines.slice(-20)
-        .reverse()
-        .forEach(line=>{
-
-            let li =
-                document.createElement(
-                    "li"
-                );
-
-            li.innerText =
-                line;
-
-            events.appendChild(
-                li
-            );
-
-            if(
-                line.startsWith(
-                    "SUCCESS"
-                )
-            ){
-                success++;
-            }
-
-            if(
-                line.startsWith(
-                    "RETRY"
-                )
-            ){
-                retry++;
-            }
-
-            if(
-                line.startsWith(
-                    "DLQ"
-                )
-            ){
-                dlq++;
-            }
-
-        });
-
-    document.getElementById(
-        "success"
-    ).innerText = success;
-
-    document.getElementById(
-        "retry"
-    ).innerText = retry;
-
-    document.getElementById(
-        "dlq"
-    ).innerText = dlq;
-}
-
-loadData();
-
-setInterval(
-    loadData,
-    1000
-);
-
 async function sendSuccess(){
 
     await fetch(
         "http://localhost:8081/send-success"
     );
+
 }
 
 async function sendFailed(){
@@ -98,4 +11,57 @@ async function sendFailed(){
     await fetch(
         "http://localhost:8081/send-failed"
     );
+
 }
+
+async function loadLogs(){
+
+    const response =
+        await fetch(
+            "http://localhost:8081/logs"
+        );
+
+    const text =
+        await response.text();
+
+    document.getElementById(
+        "logs"
+    ).textContent = text;
+
+    calculateStats(text);
+}
+
+function calculateStats(logs){
+
+    const success =
+        (logs.match(/SUCCESS/g)||[])
+        .length;
+
+    const retry =
+        (logs.match(/RETRY/g)||[])
+        .length;
+
+    const dlq =
+        (logs.match(/DLQ/g)||[])
+        .length;
+
+    document.getElementById(
+        "successCount"
+    ).innerText =
+        "Success: " + success;
+
+    document.getElementById(
+        "retryCount"
+    ).innerText =
+        "Retry: " + retry;
+
+    document.getElementById(
+        "dlqCount"
+    ).innerText =
+        "DLQ: " + dlq;
+}
+
+setInterval(
+    loadLogs,
+    1000
+);

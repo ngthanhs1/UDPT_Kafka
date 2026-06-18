@@ -1,23 +1,29 @@
-import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
 
-import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 public class DashboardServer {
 
+    private static KafkaProducer<String,String> producer;
+
     public static void main(String[] args)
             throws Exception {
 
+        initProducer();
+
         HttpServer server =
                 HttpServer.create(
-                        new InetSocketAddress(
-                                8081
-                        ),
+                        new InetSocketAddress(8081),
                         0
                 );
 
@@ -31,11 +37,40 @@ public class DashboardServer {
                 DashboardServer::sendFailed
         );
 
+        server.createContext(
+                "/logs",
+                DashboardServer::getLogs
+        );
+
         server.start();
 
         System.out.println(
-                "Dashboard API running at 8081"
+                "Dashboard API running at http://localhost:8081"
         );
+    }
+
+    private static void initProducer(){
+
+        Properties props =
+                new Properties();
+
+        props.put(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                "localhost:9092"
+        );
+
+        props.put(
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                StringSerializer.class.getName()
+        );
+
+        props.put(
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                StringSerializer.class.getName()
+        );
+
+        producer =
+                new KafkaProducer<>(props);
     }
 
     private static void sendSuccess(
@@ -50,7 +85,7 @@ public class DashboardServer {
 
             response(
                     exchange,
-                    "OK"
+                    "SUCCESS ORDER SENT"
             );
 
         }catch(Exception e){
@@ -71,7 +106,31 @@ public class DashboardServer {
 
             response(
                     exchange,
-                    "OK"
+                    "FAILED ORDER SENT"
+            );
+
+        }catch(Exception e){
+
+            e.printStackTrace();
+        }
+    }
+
+    private static void getLogs(
+            HttpExchange exchange
+    ){
+
+        try{
+
+            String content =
+                    Files.readString(
+                            Paths.get(
+                                    "demo/web/data/events.log"
+                            )
+                    );
+
+            response(
+                    exchange,
+                    content
             );
 
         }catch(Exception e){
@@ -84,30 +143,6 @@ public class DashboardServer {
             String value
     ) throws Exception{
 
-        Properties props =
-                new Properties();
-
-        props.put(
-                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                "localhost:9092"
-        );
-
-        props.put(
-                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-                StringSerializer.class.getName()
-        );
-
-        props.put(
-                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                StringSerializer.class.getName()
-        );
-
-        KafkaProducer<String,String>
-                producer =
-                new KafkaProducer<>(
-                        props
-                );
-
         producer.send(
                 new ProducerRecord<>(
                         "orders",
@@ -115,7 +150,12 @@ public class DashboardServer {
                 )
         );
 
-        producer.close();
+        producer.flush();
+
+        System.out.println(
+                "[DASHBOARD] Sent -> "
+                        + value
+        );
     }
 
     private static void response(
@@ -123,13 +163,19 @@ public class DashboardServer {
             String body
     ) throws Exception{
 
+        exchange.getResponseHeaders().add(
+                "Access-Control-Allow-Origin",
+                "*"
+        );
+
         exchange.sendResponseHeaders(
                 200,
-                body.length()
+                body.getBytes().length
         );
 
         OutputStream os =
                 exchange.getResponseBody();
+
         os.write(
                 body.getBytes()
         );

@@ -1,12 +1,59 @@
 body{
-    font-family: Arial;
-    margin:40px;
-    background:#f4f4f4;
+    background:#0f172a;
+    color:white;
+    font-family:Arial;
+    margin:0;
+}
+
+.container{
+    width:90%;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+    margin-top:20px;
+}
+
+.actions{
+    text-align:center;
+    margin:20px;
+}
+
+button{
+    padding:12px 25px;
+    margin:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:16px;
+}
+
+button:hover{
+    opacity:0.8;
+}
+
+.cards{
+    display:flex;
+    gap:20px;
 }
 
 .card{
-    background:white;
+    flex:1;
+    background:#1e293b;
+    padding:15px;
+    border-radius:10px;
+}
+
+.log-box{
+    background:#111827;
+    margin-top:20px;
     padding:20px;
-    margin-bottom:20px;
-    border-radius:8px;
+    border-radius:10px;
+}
+
+pre{
+    color:#22c55e;
+    max-height:400px;
+    overflow:auto;
 }
