@@ -8,43 +8,14 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 
-/*
- * RetryConsumer
- *
- * Chức năng:
- * - Lắng nghe Topic orders-retry.
- * - Thực hiện xử lý lại (Retry) các message bị lỗi.
- * - Retry tối đa 3 lần.
- * - Nếu vẫn lỗi sẽ chuyển sang Topic orders-dlq.
- *
- * Ý nghĩa thực tế:
- * Trong hệ thống thực tế, lỗi có thể chỉ là tạm thời:
- * + Mất kết nối mạng
- * + Database quá tải
- * + Dịch vụ bên ngoài phản hồi chậm
- *
- * Vì vậy không nên loại bỏ message ngay lập tức.
- *
- * CÂU HỎI GIẢNG VIÊN:
- * Tại sao phải có Retry?
- *
- * TRẢ LỜI:
- * Retry giúp giảm nguy cơ mất dữ liệu khi lỗi chỉ mang
- * tính tạm thời. Hệ thống có cơ hội xử lý lại trước khi
- * quyết định đưa message vào DLQ.
- */
-
 public class RetryConsumer {
 
-    // Số lần Retry tối đa
     private static final int MAX_RETRY = 3;
 
     public static void main(String[] args) {
 
-        /*
-         * Cấu hình Consumer
-         */
         Properties consumerProps = new Properties();
+
         consumerProps.put(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                 "localhost:9092"
@@ -77,13 +48,6 @@ public class RetryConsumer {
                 Collections.singletonList("orders-retry")
         );
 
-        /*
-         * Cấu hình Producer
-         *
-         * Producer này được sử dụng để:
-         * - Gửi lại message vào orders-retry
-         * - Hoặc gửi sang orders-dlq
-         */
         Properties producerProps = new Properties();
 
         producerProps.put(
@@ -107,8 +71,8 @@ public class RetryConsumer {
         System.out.println(
                 "\n========================================" +
                 "\n KHỞI ĐỘNG RETRY CONSUMER" +
-                "\n Topic đang theo dõi: orders-retry" +
-                "\n Retry tối đa      : " + MAX_RETRY +
+                "\n Topic đang theo dõi : orders-retry" +
+                "\n Retry tối đa       : " + MAX_RETRY +
                 "\n========================================\n"
         );
 
@@ -128,7 +92,59 @@ public class RetryConsumer {
                         getOrderValue(value);
 
                 /*
-                 * Chưa vượt quá số lần Retry
+                 * CASE 1:
+                 * Order-5 sẽ thành công sau lần Retry đầu tiên
+                 */
+                if (order.equals("Order-5")) {
+
+                    if (retryCount < 1) {
+
+                        int nextRetry = retryCount + 1;
+
+                        System.out.println(
+                                "\n----------------------------------------" +
+                                "\n [RETRY CONSUMER]" +
+                                "\n Đơn hàng      : " + order +
+                                "\n Retry lần     : " + nextRetry +
+                                "\n Kết quả       : THẤT BẠI TẠM THỜI" +
+                                "\n Hành động     : Retry lại" +
+                                "\n----------------------------------------"
+                        );
+
+                        EventLogger.log(
+                                "RETRY: " + order
+                        );
+
+                        producer.send(
+                                new ProducerRecord<>(
+                                        "orders-retry",
+                                        order + "|retry=" + nextRetry
+                                )
+                        );
+
+                    } else {
+
+                        System.out.println(
+                                "\n========================================" +
+                                "\n [RETRY THÀNH CÔNG]" +
+                                "\n Đơn hàng      : " + order +
+                                "\n Retry lần     : " + retryCount +
+                                "\n Trạng thái    : THÀNH CÔNG" +
+                                "\n========================================"
+                        );
+
+                        EventLogger.log(
+                                "SUCCESS AFTER RETRY: " + order
+                        );
+                    }
+
+                    continue;
+                }
+
+                /*
+                 * CASE 2:
+                 * Order-10 và Order-15 sẽ luôn lỗi
+                 * để minh họa DLQ
                  */
                 if (retryCount < MAX_RETRY) {
 
@@ -141,10 +157,10 @@ public class RetryConsumer {
                             "\n----------------------------------------" +
                             "\n [RETRY CONSUMER]" +
                             "\n Đơn hàng      : " + order +
-                            "\n Lần thử lại   : " +
+                            "\n Retry lần     : " +
                             nextRetry + "/" + MAX_RETRY +
                             "\n Kết quả       : THẤT BẠI" +
-                            "\n Hành động     : Tiếp tục Retry" +
+                            "\n Hành động     : Retry tiếp" +
                             "\n----------------------------------------"
                     );
 
@@ -164,11 +180,6 @@ public class RetryConsumer {
 
                 } else {
 
-                    /*
-                     * Đã vượt quá số lần Retry
-                     * => chuyển sang DLQ
-                     */
-
                     String dlqMessage =
                             order +
                             "|reason=max retry exceeded|retry=" +
@@ -176,11 +187,10 @@ public class RetryConsumer {
 
                     System.out.println(
                             "\n****************************************" +
-                            "\n [RETRY THẤT BẠI HOÀN TOÀN]" +
+                            "\n [CHUYỂN VÀO DLQ]" +
                             "\n Đơn hàng      : " + order +
-                            "\n Số lần Retry  : " + retryCount +
-                            "\n Kết quả       : VƯỢT QUÁ GIỚI HẠN" +
-                            "\n Hành động     : Chuyển sang DLQ" +
+                            "\n Retry tối đa  : " + retryCount +
+                            "\n Trạng thái    : THẤT BẠI HOÀN TOÀN" +
                             "\n****************************************"
                     );
 
@@ -201,14 +211,6 @@ public class RetryConsumer {
         }
     }
 
-    /*
-     * Lấy số lần Retry từ message
-     *
-     * Ví dụ:
-     * Order-5|retry=2
-     *
-     * => trả về 2
-     */
     private static int getRetryCount(String value) {
 
         if (!value.contains("|retry=")) {
@@ -221,14 +223,6 @@ public class RetryConsumer {
         return Integer.parseInt(parts[1]);
     }
 
-    /*
-     * Lấy mã đơn hàng
-     *
-     * Ví dụ:
-     * Order-5|retry=2
-     *
-     * => Order-5
-     */
     private static String getOrderValue(String value) {
 
         if (!value.contains("|retry=")) {
