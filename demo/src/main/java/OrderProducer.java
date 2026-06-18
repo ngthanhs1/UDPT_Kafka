@@ -10,12 +10,12 @@ import java.util.Properties;
  *
  * Chức năng:
  * - Sinh dữ liệu đơn hàng giả lập
- * - Gửi dữ liệu vào Topic orders
+ * - Gửi dữ liệu vào Kafka Topic "orders"
  *
  * Vai trò:
- * Producer là điểm bắt đầu của hệ thống.
+ * Producer là điểm bắt đầu của toàn bộ hệ thống.
  *
- * Luồng:
+ * Luồng dữ liệu:
  *
  * OrderProducer
  *      ↓
@@ -25,17 +25,23 @@ import java.util.Properties;
  *      ↓
  * RetryConsumer
  *      ↓
- * DLQ Consumer
+ * orders-dlq
+ *      ↓
+ * DlqConsumer
  *
  * =====================================================
  *
- * CÂU HỎI GIẢNG VIÊN:
+ * CÂU HỎI GIẢNG VIÊN THƯỜNG HỎI
  *
  * Producer là gì?
  *
- * Trả lời:
- * Producer là thành phần tạo và gửi dữ liệu
- * vào Kafka Topic.
+ * Producer là thành phần chịu trách nhiệm
+ * tạo và gửi dữ liệu vào Kafka Topic.
+ *
+ * Tại sao dùng KafkaProducer?
+ *
+ * Vì KafkaProducer hỗ trợ gửi dữ liệu
+ * theo thời gian thực với hiệu năng cao.
  *
  * =====================================================
  */
@@ -63,51 +69,82 @@ public class OrderProducer {
                 StringSerializer.class.getName()
         );
 
-        KafkaProducer<String,String> producer =
+        KafkaProducer<String, String> producer =
                 new KafkaProducer<>(props);
 
         System.out.println(
-                "\n========================================" +
+                "\n==================================================" +
                 "\n KHỞI ĐỘNG ORDER PRODUCER" +
-                "\n Topic đích : orders" +
-                "\n Số đơn hàng : 100" +
-                "\n========================================\n"
+                "\n--------------------------------------------------" +
+                "\n Topic đích      : orders" +
+                "\n Tổng đơn hàng   : 100" +
+                "\n Kafka Server    : localhost:9092" +
+                "\n==================================================\n"
         );
 
-        for(int i=1;i<=100;i++){
+        int totalSent = 0;
+
+        for (int i = 1; i <= 100; i++) {
 
             String order =
                     "Order-" + i;
 
-            producer.send(
+            ProducerRecord<String, String> record =
                     new ProducerRecord<>(
                             "orders",
+                            String.valueOf(i), // key
                             order
-                    )
-            );
+                    );
 
-            System.out.println(
-                    "\n----------------------------------------" +
-                    "\n ĐANG GỬI ĐƠN HÀNG" +
-                    "\n Mã đơn hàng : " + order +
-                    "\n Topic       : orders" +
-                    "\n Trạng thái  : ĐÃ GỬI" +
-                    "\n----------------------------------------"
+            producer.send(
+                    record,
+                    (metadata, exception) -> {
+
+                        if (exception == null) {
+
+                            System.out.println(
+                                    "\n----------------------------------------" +
+                                    "\n ĐANG GỬI ĐƠN HÀNG" +
+                                    "\n Mã đơn hàng : " + order +
+                                    "\n Topic       : " + metadata.topic() +
+                                    "\n Partition   : " + metadata.partition() +
+                                    "\n Offset      : " + metadata.offset() +
+                                    "\n Trạng thái  : GỬI THÀNH CÔNG" +
+                                    "\n----------------------------------------"
+                            );
+
+                        } else {
+
+                            System.out.println(
+                                    "\n[ERROR] Không gửi được: "
+                                            + order
+                            );
+
+                            exception.printStackTrace();
+                        }
+                    }
             );
 
             EventLogger.log(
                     "PRODUCER SENT: " + order
             );
 
+            totalSent++;
+
             Thread.sleep(200);
         }
 
         System.out.println(
-                "\n========================================" +
-                "\n HOÀN THÀNH GỬI DỮ LIỆU" +
-                "\n Tổng số đơn hàng : 100" +
-                "\n========================================"
+                "\n==================================================" +
+                "\n TỔNG KẾT PRODUCER" +
+                "\n--------------------------------------------------" +
+                "\n Đã gửi thành công : " + totalSent +
+                "\n Topic             : orders" +
+                "\n Trạng thái        : HOÀN TẤT" +
+                "\n=================================================="
         );
+
+        producer.flush();
 
         producer.close();
     }
