@@ -11,20 +11,18 @@ function getApiBaseUrl() {
     if (!origin || origin.startsWith('file://')) {
         return "http://localhost:8081";
     }
-    // Hỗ trợ Github Codespaces
-    if (origin.includes('-8080.app.github.dev')) {
-        return origin.replace('-8080.app.github.dev', '-8081.app.github.dev');
+    
+    // Hỗ trợ Github Codespaces với bất kỳ cổng nào (ví dụ -8000, -8080, -3000) đổi thành -8081
+    if (origin.includes('.github.dev')) {
+        return origin.replace(/-(\d+)\.(app\.github\.dev|preview\.app\.github\.dev|githubpreview\.dev)/, '-8081.$2');
     }
-    if (origin.includes('-8080.preview.app.github.dev')) {
-        return origin.replace('-8080.preview.app.github.dev', '-8081.preview.app.github.dev');
-    }
-    if (origin.includes('-8080.githubpreview.dev')) {
-        return origin.replace('-8080.githubpreview.dev', '-8081.githubpreview.dev');
-    }
+    
     // Hỗ trợ các trường hợp chạy cổng local khác
-    if (origin.includes(':8080')) {
-        return origin.replace(':8080', ':8081');
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:8081';
     }
+    
     return "http://localhost:8081";
 }
 const API_BASE_URL = getApiBaseUrl();

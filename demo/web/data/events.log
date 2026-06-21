@@ -456,3 +456,20 @@ PRODUCER SENT: Order-99
 SUCCESS: Order-99
 PRODUCER SENT: Order-100
 SUCCESS: Order-100
+DLQ CONSUMER STARTED
+REBALANCE ASSIGN: [orders-0, orders-1, orders-2]
+REBALANCE REMOVE: [orders-0, orders-1, orders-2]
+REBALANCE ASSIGN: [orders-2]
+REBALANCE ASSIGN: [orders-0, orders-1]
+SUCCESS: 12,sd,12
+SUCCESS: 1,sd,11|fail-transient
+SUCCESS: 23,1asfca,1|fail-persistent
+REBALANCE ASSIGN: C1 -> [orders-0, orders-1]
+REBALANCE ASSIGN: C2 -> [orders-2]
+DLQ CONSUMER STARTED
+FAILED: 2,hekio,1|fail-persistent
+RETRY: 2,hekio,1|fail-persistent lan=1
+RETRY: 2,hekio,1|fail-persistent lan=2
+RETRY: 2,hekio,1|fail-persistent lan=3
+DLQ: 2,hekio,1|fail-persistent vuot qua gioi han retry
+DLQ: 2,hekio,1|fail-persistent|reason=max retry exceeded|retry=3
