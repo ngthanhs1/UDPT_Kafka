@@ -5,6 +5,30 @@ let fullLogs = '';
 let localCleared = false; // Xóa tạm thời phía client
 let lastFetchedLogs = '';
 
+// Tự động phát hiện API Base URL khi chạy trên môi trường đám mây (Github Codespaces, Gitpod, etc.)
+function getApiBaseUrl() {
+    const origin = window.location.origin;
+    if (!origin || origin.startsWith('file://')) {
+        return "http://localhost:8081";
+    }
+    // Hỗ trợ Github Codespaces
+    if (origin.includes('-8080.app.github.dev')) {
+        return origin.replace('-8080.app.github.dev', '-8081.app.github.dev');
+    }
+    if (origin.includes('-8080.preview.app.github.dev')) {
+        return origin.replace('-8080.preview.app.github.dev', '-8081.preview.app.github.dev');
+    }
+    if (origin.includes('-8080.githubpreview.dev')) {
+        return origin.replace('-8080.githubpreview.dev', '-8081.githubpreview.dev');
+    }
+    // Hỗ trợ các trường hợp chạy cổng local khác
+    if (origin.includes(':8080')) {
+        return origin.replace(':8080', ':8081');
+    }
+    return "http://localhost:8081";
+}
+const API_BASE_URL = getApiBaseUrl();
+
 // Khởi chạy ứng dụng
 document.addEventListener('DOMContentLoaded', () => {
     // Bắt đầu lắng nghe thay đổi của form để cập nhật preview tin nhắn
@@ -81,9 +105,9 @@ function updateMessagePreview() {
 // Gửi đơn hàng nhanh từ trang Dashboard
 async function quickSend(type) {
     try {
-        let endpoint = "http://localhost:8081/send-success";
+        let endpoint = `${API_BASE_URL}/send-success`;
         if (type === 'failed') {
-            endpoint = "http://localhost:8081/send-failed";
+            endpoint = `${API_BASE_URL}/send-failed`;
         }
         
         const res = await fetch(endpoint);
@@ -105,7 +129,7 @@ async function sendCustomOrder(event) {
     const failureMode = document.querySelector('input[name="failureMode"]:checked').value;
 
     try {
-        const url = `http://localhost:8081/send-custom?id=${encodeURIComponent(orderId)}&product=${encodeURIComponent(product)}&qty=${encodeURIComponent(qty)}&mode=${encodeURIComponent(failureMode)}`;
+        const url = `${API_BASE_URL}/send-custom?id=${encodeURIComponent(orderId)}&product=${encodeURIComponent(product)}&qty=${encodeURIComponent(qty)}&mode=${encodeURIComponent(failureMode)}`;
         const res = await fetch(url);
         const text = await res.text();
         
@@ -148,7 +172,7 @@ function clearLocalLogs() {
 // Tải nhật ký hệ thống từ API Server
 async function loadLogs() {
     try {
-        const response = await fetch("http://localhost:8081/logs");
+        const response = await fetch(`${API_BASE_URL}/logs`);
         if (!response.ok) throw new Error("Cổng log lỗi");
         
         const text = await response.text();
@@ -187,7 +211,7 @@ function updateAPIStatus(isOnline) {
     } else {
         pulse.className = 'pulse-indicator offline';
         text.textContent = 'API Server: OFFLINE';
-        document.getElementById('logs').textContent = "[OFFLINE] Không thể kết nối với API Server chạy trên http://localhost:8081\nHãy chắc chắn bạn đã chạy lớp DashboardServer Java.";
+        document.getElementById('logs').textContent = `[OFFLINE] Không thể kết nối với API Server chạy trên ${API_BASE_URL}\nHãy chắc chắn bạn đã chạy lớp DashboardServer Java.`;
     }
 }
 
